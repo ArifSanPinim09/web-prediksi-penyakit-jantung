@@ -18,8 +18,12 @@ except ImportError:
     print("⚠️ XGBoost not available - will use Random Forest only")
 
 # Base directories
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+
+# Kalau models tidak di sini, coba fallback satu level di atas:
+if not os.path.exists(MODELS_DIR):
+    MODELS_DIR = os.path.join(os.path.dirname(BASE_DIR), "models")
 
 
 def load_models():
