@@ -1,3 +1,5 @@
+array_record==0.6.0
+joblib
 asttokens==3.0.0
 astunparse==1.6.3
 attrs==25.1.0
@@ -67,6 +69,7 @@ sniffio==1.3.1
 sortedcontainers==2.4.0
 stack-data==0.6.3
 tensorflow-datasets==4.9.7
+tensorflow-io-gcs-filesystem==0.37.1
 tensorflow-metadata==1.16.1
 tensorflow-text==2.18.1
 termcolor==2.5.0
