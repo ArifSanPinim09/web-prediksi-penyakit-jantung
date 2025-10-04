@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from styles import get_custom_css, get_healthcare_icons
-from app.utils import (
+from utils import (
     load_models, 
     preprocess_input, 
     create_gauge_chart,
