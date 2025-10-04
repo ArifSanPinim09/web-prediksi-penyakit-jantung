@@ -8,7 +8,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.styles import get_custom_css, get_healthcare_icons
+from styles import get_custom_css, get_healthcare_icons
 from app.utils import (
     load_models, 
     preprocess_input, 
