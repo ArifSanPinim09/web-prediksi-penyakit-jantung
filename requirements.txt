@@ -1,6 +1,7 @@
 array_record==0.6.0
 joblib
 plotly
+scikit-learn
 asttokens==3.0.0
 astunparse==1.6.3
 attrs==25.1.0
