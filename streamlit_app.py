@@ -1,4 +1,4 @@
-# streamlit_app.py - Random Forest Only Version
+# streamlit_app.py - IMPROVED UI/UX VERSION
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,26 +7,21 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from styles import get_custom_css, get_healthcare_icons
 from utils import (
-    load_models, 
-    preprocess_input, 
-    create_gauge_chart,
-    create_feature_importance_chart,
-    create_rf_prediction_chart,
-    get_health_recommendations,
-    calculate_risk_factors
+    load_models, preprocess_input, create_gauge_chart,
+    create_feature_importance_chart, create_rf_prediction_chart,
+    get_health_recommendations, calculate_risk_factors
 )
 
 # ============================================================================
 # PAGE CONFIGURATION
 # ============================================================================
 st.set_page_config(
-    page_title="Prediksi Penyakit Jantung",
+    page_title="Heart Disease Prediction",
     page_icon="❤️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 st.markdown(get_custom_css(), unsafe_allow_html=True)
@@ -40,563 +35,685 @@ def get_models():
     return load_models()
 
 models_dict = get_models()
-
 if models_dict is None:
     st.error("❌ **Error**: Tidak dapat memuat model")
     st.stop()
 
 # ============================================================================
-# SESSION STATE
+# SESSION STATE INITIALIZATION
 # ============================================================================
+if 'page' not in st.session_state:
+    st.session_state.page = 'home'
+if 'step' not in st.session_state:
+    st.session_state.step = 1
 if 'prediction_made' not in st.session_state:
     st.session_state.prediction_made = False
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
+if 'form_data' not in st.session_state:
+    st.session_state.form_data = {}
 
 # ============================================================================
-# HEADER
+# NAVIGATION FUNCTIONS
 # ============================================================================
-st.markdown(f"""
-    <div class="header-container">
-        <h1 class="header-title">{icons['heart']} Sistem Prediksi Penyakit Jantung</h1>
-        <p class="header-subtitle">Deteksi Dini Risiko Penyakit Jantung dengan Machine Learning</p>
-    </div>
-""", unsafe_allow_html=True)
+def navigate_to(page):
+    st.session_state.page = page
+    st.session_state.step = 1
+    st.rerun()
 
 # ============================================================================
-# SIDEBAR
+# MODERN HEADER WITH NAVIGATION
 # ============================================================================
-st.sidebar.image("https://img.icons8.com/color/200/000000/cardiovascular.png", width=150)
-st.sidebar.title(f"{icons['stethoscope']} Menu Navigasi")
-st.sidebar.markdown("---")
+col1, col2, col3 = st.columns([2, 3, 2])
 
-page = st.sidebar.radio(
-    "Pilih Halaman:",
-    ["🏠 Beranda", "🩺 Prediksi Kesehatan", "📊 Informasi Model", "ℹ️ Tentang Aplikasi"],
-    label_visibility="collapsed"
-)
+with col1:
+    st.markdown(f"""
+        <div style="padding: 1rem 0;">
+            <h2 style="color: #00D9A3; margin: 0; font-size: 1.8rem;">
+                {icons['heart']} HeartCheck AI
+            </h2>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
-st.sidebar.info(f"""
-    {icons['info']} **Informasi Sistem**
+with col3:
+    nav_col1, nav_col2, nav_col3 = st.columns(3)
+    with nav_col1:
+        if st.button("🏠 Home", use_container_width=True, 
+                     type="primary" if st.session_state.page == 'home' else "secondary"):
+            navigate_to('home')
+    with nav_col2:
+        if st.button("🩺 Check", use_container_width=True,
+                     type="primary" if st.session_state.page == 'predict' else "secondary"):
+            navigate_to('predict')
+    with nav_col3:
+        if st.button("ℹ️ Info", use_container_width=True,
+                     type="primary" if st.session_state.page == 'info' else "secondary"):
+            navigate_to('info')
+
+st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
+
+# ============================================================================
+# HOME PAGE
+# ============================================================================
+if st.session_state.page == 'home':
     
-    **Model**: Random Forest  
-    **Akurasi**: {models_dict['metadata']['champion_accuracy']*100:.2f}%  
-    **Status**: {icons['check']} Aktif
-""")
-
-# ============================================================================
-# PAGE 1: BERANDA
-# ============================================================================
-if page == "🏠 Beranda":
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.markdown(f"""
-            <div class="info-card">
-                <h2 style="color: #2C3E50;">{icons['health']} Selamat Datang</h2>
-                <p style='font-size: 1.1rem; line-height: 1.8; color: #2C3E50;'>
-                    Sistem ini menggunakan <strong>Machine Learning Random Forest</strong> untuk membantu 
-                    mendeteksi risiko penyakit jantung berdasarkan data kesehatan Anda. Dengan akurasi tinggi 
-                    mencapai <strong>{models_dict['metadata']['champion_accuracy']*100:.1f}%</strong>, 
-                    sistem ini dapat memberikan prediksi awal yang membantu Anda untuk berkonsultasi 
-                    dengan tenaga medis profesional.
+    # Hero Section
+    st.markdown(f"""
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Deteksi Dini Risiko Penyakit Jantung</h1>
+                <p class="hero-subtitle">
+                    Gunakan kekuatan AI untuk mengetahui risiko kesehatan jantung Anda. 
+                    Cepat, akurat, dan mudah digunakan.
                 </p>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">88.6%</div>
+                        <div class="stat-label">Akurasi</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">2 Min</div>
+                        <div class="stat-label">Waktu Check</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Gratis</div>
+                    </div>
+                </div>
             </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-            <div class="alert-warning">
-                <strong style="color: #856404;">{icons['warning']} PENTING:</strong> 
-                <span style="color: #856404;">Hasil prediksi ini bukan diagnosis medis. 
-                Selalu konsultasikan dengan dokter untuk diagnosis dan penanganan yang tepat.</span>
-            </div>
-        """, unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
     
+    # CTA Button
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown(f"""
-            <div class="info-card" style="background: linear-gradient(135deg, #E8F5F3 0%, #FFFFFF 100%);">
-                <h3 style="text-align: center; color: #00D9A3;">{icons['chart']} Statistik Sistem</h3>
-                <div class="metric-card">
-                    <div class="metric-value">{models_dict['metadata']['champion_accuracy']*100:.1f}%</div>
-                    <div class="metric-label">Akurasi Model</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">Random Forest</div>
-                    <div class="metric-label" style="color: #7F8C8D;">Algoritma ML</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value">918</div>
-                    <div class="metric-label">Data Training</div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        if st.button("🩺 Mulai Pemeriksaan Sekarang", use_container_width=True, type="primary"):
+            navigate_to('predict')
     
-    st.markdown("---")
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
     
-    st.markdown(f"## {icons['star']} Fitur Utama Sistem")
+    # How It Works Section
+    st.markdown(f"""
+        <div class="section-title">
+            <h2>Cara Kerja Sistem</h2>
+            <p>Proses sederhana dalam 3 langkah</p>
+        </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown(f"""
-            <div class="info-card">
-                <h3 style="color: #00D9A3; text-align: center;">{icons['target']} Akurasi Tinggi</h3>
-                <p style="text-align: center; color: #2C3E50;">
-                    Model machine learning dengan akurasi <strong>88.6%</strong> 
-                    menggunakan algoritma Random Forest.
-                </p>
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-icon">📝</div>
+                <h3 class="step-title">Input Data</h3>
+                <p class="step-desc">Masukkan data kesehatan Anda melalui form yang mudah diikuti</p>
             </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
-            <div class="info-card">
-                <h3 style="color: #00D9A3; text-align: center;">{icons['stethoscope']} Mudah Digunakan</h3>
-                <p style="text-align: center; color: #2C3E50;">
-                    Interface yang user-friendly dan mudah dipahami. 
-                    Input data kesehatan dan dapatkan hasil instant.
-                </p>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-icon">🤖</div>
+                <h3 class="step-title">AI Analisis</h3>
+                <p class="step-desc">Model machine learning menganalisis data dengan akurasi 88.6%</p>
             </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown(f"""
-            <div class="info-card">
-                <h3 style="color: #00D9A3; text-align: center;">{icons['shield']} Rekomendasi Personal</h3>
-                <p style="text-align: center; color: #2C3E50;">
-                    Dapatkan rekomendasi kesehatan yang dipersonalisasi 
-                    berdasarkan hasil prediksi dan faktor risiko.
-                </p>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-icon">📊</div>
+                <h3 class="step-title">Hasil & Saran</h3>
+                <p class="step-desc">Dapatkan hasil prediksi dan rekomendasi kesehatan personal</p>
             </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
     
-    st.markdown(f"## {icons['info']} Cara Kerja Sistem")
+    # Features Section
+    st.markdown(f"""
+        <div class="section-title">
+            <h2>Mengapa HeartCheck AI?</h2>
+        </div>
+    """, unsafe_allow_html=True)
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2 = st.columns(2)
     
     with col1:
         st.markdown(f"""
-            <div style="text-align: center; padding: 1.5rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
-                <h4 style="color: #00D9A3;">1. Input Data</h4>
-                <p style="color: #7F8C8D;">Masukkan data kesehatan</p>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Akurasi Tinggi</h3>
+                <p>Model Random Forest dengan akurasi 88.6% yang telah divalidasi</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Hasil Instant</h3>
+                <p>Dapatkan hasil prediksi dalam hitungan detik</p>
             </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
-            <div style="text-align: center; padding: 1.5rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">⚙️</div>
-                <h4 style="color: #00D9A3;">2. Analisis AI</h4>
-                <p style="color: #7F8C8D;">Model AI menganalisis</p>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Data Aman</h3>
+                <p>Data Anda tidak disimpan dan tetap privat</p>
             </div>
         """, unsafe_allow_html=True)
-    
-    with col3:
+        
         st.markdown(f"""
-            <div style="text-align: center; padding: 1.5rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                <h4 style="color: #00D9A3;">3. Hasil Prediksi</h4>
-                <p style="color: #7F8C8D;">Lihat hasil & probabilitas</p>
+            <div class="feature-card">
+                <div class="feature-icon">💡</div>
+                <h3>Rekomendasi Personal</h3>
+                <p>Saran kesehatan yang disesuaikan dengan kondisi Anda</p>
             </div>
         """, unsafe_allow_html=True)
     
-    with col4:
-        st.markdown(f"""
-            <div style="text-align: center; padding: 1.5rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">💡</div>
-                <h4 style="color: #00D9A3;">4. Rekomendasi</h4>
-                <p style="color: #7F8C8D;">Saran kesehatan</p>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
+    # Warning Section
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
     st.markdown(f"""
-        <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #E8F5F3 0%, #FFFFFF 100%); border-radius: 15px;">
-            <h2 style="color: #00D9A3; margin-bottom: 1rem;">{icons['heart']} Siap Memulai?</h2>
-            <p style="font-size: 1.2rem; color: #2C3E50; margin-bottom: 2rem;">
-                Mulai deteksi dini risiko penyakit jantung Anda sekarang!
-            </p>
+        <div class="warning-box">
+            <div class="warning-icon">{icons['warning']}</div>
+            <div class="warning-content">
+                <h3>Penting untuk Diketahui</h3>
+                <p>Hasil prediksi ini <strong>bukan diagnosis medis</strong>. 
+                Aplikasi ini hanya memberikan indikasi awal dan sebaiknya dikonsultasikan 
+                dengan dokter untuk diagnosis dan penanganan yang tepat.</p>
+            </div>
         </div>
     """, unsafe_allow_html=True)
-    
-    if st.button("🩺 Mulai Prediksi Sekarang", use_container_width=True, type="primary"):
-        st.switch_page("pages/prediksi.py") if hasattr(st, 'switch_page') else st.rerun()
 
 # ============================================================================
-# PAGE 2: PREDIKSI KESEHATAN
+# PREDICTION PAGE - STEP BY STEP
 # ============================================================================
-elif page == "🩺 Prediksi Kesehatan":
+elif st.session_state.page == 'predict':
     
-    st.markdown(f"## {icons['stethoscope']} Form Prediksi Kesehatan Jantung")
-    
+    # Progress Bar
+    progress = st.session_state.step / 4
     st.markdown(f"""
-        <div class="alert-info">
-            <strong style="color: #004085;">{icons['info']} Petunjuk:</strong> 
-            <span style="color: #004085;">Lengkapi data dengan akurat untuk hasil prediksi yang optimal.</span>
+        <div class="progress-container">
+            <div class="progress-bar" style="width: {progress*100}%"></div>
         </div>
+        <div class="progress-text">Langkah {st.session_state.step} dari 4</div>
     """, unsafe_allow_html=True)
     
-    with st.form("prediction_form"):
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    
+    # STEP 1: Personal Info
+    if st.session_state.step == 1:
+        st.markdown(f"""
+            <div class="step-header">
+                <h2>{icons['doctor']} Informasi Pribadi</h2>
+                <p>Mulai dengan informasi dasar Anda</p>
+            </div>
+        """, unsafe_allow_html=True)
         
-        st.markdown(f"### {icons['doctor']} Data Pribadi")
         col1, col2 = st.columns(2)
         
         with col1:
-            age = st.number_input("Usia (tahun)", 1, 120, 50)
-            sex = st.selectbox("Jenis Kelamin", ["M", "F"],
-                             format_func=lambda x: "Laki-laki" if x == "M" else "Perempuan")
-        
+            age = st.number_input(
+                "Usia (tahun)",
+                min_value=1,
+                max_value=120,
+                value=st.session_state.form_data.get('age', 50),
+                help="Masukkan usia Anda dalam tahun"
+            )
+            
         with col2:
-            chest_pain = st.selectbox("Tipe Nyeri Dada", ["TA", "ATA", "NAP", "ASY"],
-                                     format_func=lambda x: {
-                                         "TA": "Typical Angina",
-                                         "ATA": "Atypical Angina",
-                                         "NAP": "Non-Anginal Pain",
-                                         "ASY": "Asymptomatic"
-                                     }[x])
-            exercise_angina = st.selectbox("Nyeri saat Olahraga", ["N", "Y"],
-                                          format_func=lambda x: "Tidak" if x == "N" else "Ya")
+            sex = st.selectbox(
+                "Jenis Kelamin",
+                options=["M", "F"],
+                format_func=lambda x: "👨 Laki-laki" if x == "M" else "👩 Perempuan",
+                index=0 if st.session_state.form_data.get('sex', 'M') == 'M' else 1
+            )
         
-        st.markdown("---")
-        
-        st.markdown(f"### {icons['heart']} Pemeriksaan Vital")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            resting_bp = st.number_input("Tekanan Darah (mm Hg)", 80, 200, 120)
-            max_hr = st.number_input("Detak Jantung Maksimal", 60, 220, 150)
-        
-        with col2:
-            cholesterol = st.number_input("Kolesterol (mg/dl)", 0, 600, 200)
-            oldpeak = st.number_input("ST Depression", -3.0, 7.0, 0.0, 0.1)
-        
-        with col3:
-            fasting_bs = st.selectbox("Gula Darah Puasa > 120", [0, 1],
-                                     format_func=lambda x: "Tidak" if x == 0 else "Ya")
-            st_slope = st.selectbox("ST Slope", ["Up", "Flat", "Down"],
-                                   format_func=lambda x: {"Up": "Naik", "Flat": "Datar", "Down": "Turun"}[x])
-        
-        st.markdown("---")
-        
-        st.markdown(f"### {icons['chart']} Hasil EKG")
-        resting_ecg = st.selectbox("Hasil EKG Istirahat", ["Normal", "ST", "LVH"],
-                                   format_func=lambda x: {
-                                       "Normal": "Normal",
-                                       "ST": "ST-T Wave Abnormality",
-                                       "LVH": "Left Ventricular Hypertrophy"
-                                   }[x])
-        
-        st.markdown("---")
+        st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            submit_button = st.form_submit_button(f"{icons['target']} Prediksi Sekarang", use_container_width=True)
+            if st.button("Lanjut ke Langkah 2 →", use_container_width=True, type="primary"):
+                st.session_state.form_data['age'] = age
+                st.session_state.form_data['sex'] = sex
+                st.session_state.step = 2
+                st.rerun()
     
-    if submit_button:
-        
-        with st.spinner("🔄 Memproses data..."):
-            
-            input_data = {
-                'Age': age, 'Sex': sex, 'ChestPainType': chest_pain,
-                'RestingBP': resting_bp, 'Cholesterol': cholesterol,
-                'FastingBS': fasting_bs, 'RestingECG': resting_ecg,
-                'MaxHR': max_hr, 'ExerciseAngina': exercise_angina,
-                'Oldpeak': oldpeak, 'ST_Slope': st_slope
-            }
-            
-            try:
-                X_processed = preprocess_input(
-                    input_data, models_dict['scaler'],
-                    models_dict['label_encoders'], models_dict['feature_names']
-                )
-                
-                model = models_dict['champion_model']
-                prediction = model.predict(X_processed)[0]
-                probability = model.predict_proba(X_processed)[0]
-                
-                st.session_state.prediction_made = True
-                st.session_state.prediction_result = {
-                    'prediction': prediction,
-                    'probability': probability[1],
-                    'input_data': input_data,
-                    'risk_factors': calculate_risk_factors(input_data)
-                }
-                
-                st.success(f"{icons['check']} Prediksi berhasil! (Random Forest - 88.6% Akurasi)")
-                
-            except Exception as e:
-                st.error(f"❌ Terjadi kesalahan: {str(e)}")
-                st.stop()
-    
-    if st.session_state.prediction_made:
-        
-        result = st.session_state.prediction_result
-        
-        st.markdown("---")
-        st.markdown(f"## {icons['chart']} Hasil Prediksi")
-        
-        if result['prediction'] == 0:
-            st.markdown(f"""
-                <div class="result-card-positive">
-                    <div class="result-icon">{icons['healthy']}</div>
-                    <h2 class="result-title">Risiko Rendah</h2>
-                    <p class="result-subtitle">Sistem memprediksi Anda memiliki risiko rendah terkena penyakit jantung.</p>
-                    <div class="probability-text">Probabilitas Risiko: {result['probability']*100:.1f}%</div>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div class="result-card-negative">
-                    <div class="result-icon">{icons['warning']}</div>
-                    <h2 class="result-title">Risiko Tinggi</h2>
-                    <p class="result-subtitle">Sistem memprediksi Anda memiliki risiko tinggi terkena penyakit jantung.</p>
-                    <div class="probability-text">Probabilitas Risiko: {result['probability']*100:.1f}%</div>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
+    # STEP 2: Symptoms
+    elif st.session_state.step == 2:
+        st.markdown(f"""
+            <div class="step-header">
+                <h2>{icons['stethoscope']} Gejala & Kondisi</h2>
+                <p>Ceritakan gejala yang Anda alami</p>
+            </div>
+        """, unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown(f"### {icons['chart']} Tingkat Risiko")
-            gauge_fig = create_gauge_chart(result['probability'], "Probabilitas Penyakit Jantung")
-            st.plotly_chart(gauge_fig, use_container_width=True)
+            chest_pain = st.selectbox(
+                "Tipe Nyeri Dada",
+                options=["ASY", "NAP", "ATA", "TA"],
+                format_func=lambda x: {
+                    "ASY": "😊 Tidak Ada Nyeri (Asymptomatic)",
+                    "NAP": "😐 Nyeri Non-Anginal",
+                    "ATA": "😟 Nyeri Atypical Angina",
+                    "TA": "😰 Nyeri Typical Angina"
+                }[x],
+                index=["ASY", "NAP", "ATA", "TA"].index(
+                    st.session_state.form_data.get('chest_pain', 'ASY')
+                ),
+                help="Pilih jenis nyeri dada yang paling sesuai"
+            )
+            
+        with col2:
+            exercise_angina = st.selectbox(
+                "Nyeri Saat Olahraga?",
+                options=["N", "Y"],
+                format_func=lambda x: "✅ Tidak" if x == "N" else "⚠️ Ya",
+                index=0 if st.session_state.form_data.get('exercise_angina', 'N') == 'N' else 1,
+                help="Apakah Anda merasakan nyeri saat berolahraga?"
+            )
+        
+        resting_ecg = st.selectbox(
+            "Hasil EKG Istirahat",
+            options=["Normal", "ST", "LVH"],
+            format_func=lambda x: {
+                "Normal": "✅ Normal",
+                "ST": "⚠️ ST-T Wave Abnormality",
+                "LVH": "⚠️ Left Ventricular Hypertrophy"
+            }[x],
+            index=["Normal", "ST", "LVH"].index(
+                st.session_state.form_data.get('resting_ecg', 'Normal')
+            ),
+            help="Hasil pemeriksaan EKG saat istirahat"
+        )
+        
+        st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("← Kembali", use_container_width=True):
+                st.session_state.step = 1
+                st.rerun()
+        with col2:
+            if st.button("Lanjut ke Langkah 3 →", use_container_width=True, type="primary"):
+                st.session_state.form_data['chest_pain'] = chest_pain
+                st.session_state.form_data['exercise_angina'] = exercise_angina
+                st.session_state.form_data['resting_ecg'] = resting_ecg
+                st.session_state.step = 3
+                st.rerun()
+    
+    # STEP 3: Vital Signs
+    elif st.session_state.step == 3:
+        st.markdown(f"""
+            <div class="step-header">
+                <h2>{icons['heart']} Tanda Vital</h2>
+                <p>Data pemeriksaan kesehatan</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 🩸 Tekanan Darah & Gula")
+            resting_bp = st.number_input(
+                "Tekanan Darah (mm Hg)",
+                min_value=80,
+                max_value=200,
+                value=st.session_state.form_data.get('resting_bp', 120),
+                help="Normal: 90-120 mm Hg"
+            )
+            
+            fasting_bs = st.selectbox(
+                "Gula Darah Puasa > 120 mg/dl?",
+                options=[0, 1],
+                format_func=lambda x: "✅ Tidak (< 120)" if x == 0 else "⚠️ Ya (> 120)",
+                index=st.session_state.form_data.get('fasting_bs', 0),
+                help="Normal: < 100 mg/dl"
+            )
+            
+            cholesterol = st.number_input(
+                "Kolesterol Total (mg/dl)",
+                min_value=0,
+                max_value=600,
+                value=st.session_state.form_data.get('cholesterol', 200),
+                help="Normal: < 200 mg/dl"
+            )
         
         with col2:
-            st.markdown(f"### {icons['target']} Prediksi Model")
-            pred_fig = create_rf_prediction_chart(result['probability'])
-            st.plotly_chart(pred_fig, use_container_width=True)
+            st.markdown("#### ❤️ Detak Jantung")
+            max_hr = st.number_input(
+                "Detak Jantung Maksimal",
+                min_value=60,
+                max_value=220,
+                value=st.session_state.form_data.get('max_hr', 150),
+                help="Saat aktivitas maksimal"
+            )
+            
+            oldpeak = st.number_input(
+                "ST Depression (Oldpeak)",
+                min_value=-3.0,
+                max_value=7.0,
+                value=st.session_state.form_data.get('oldpeak', 0.0),
+                step=0.1,
+                help="Depresi ST yang diukur dari EKG"
+            )
+            
+            st_slope = st.selectbox(
+                "ST Slope",
+                options=["Up", "Flat", "Down"],
+                format_func=lambda x: {"Up": "⬆️ Naik", "Flat": "➡️ Datar", "Down": "⬇️ Turun"}[x],
+                index=["Up", "Flat", "Down"].index(
+                    st.session_state.form_data.get('st_slope', 'Flat')
+                )
+            )
         
-        st.markdown("---")
+        st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
         
-        st.markdown(f"### {icons['warning']} Faktor Risiko Terdeteksi")
-        
-        risk_factors = result['risk_factors']
-        risk_count = sum(risk_factors.values())
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("← Kembali", use_container_width=True):
+                st.session_state.step = 2
+                st.rerun()
+        with col2:
+            if st.button("Lanjut ke Review →", use_container_width=True, type="primary"):
+                st.session_state.form_data.update({
+                    'resting_bp': resting_bp,
+                    'fasting_bs': fasting_bs,
+                    'cholesterol': cholesterol,
+                    'max_hr': max_hr,
+                    'oldpeak': oldpeak,
+                    'st_slope': st_slope
+                })
+                st.session_state.step = 4
+                st.rerun()
+    
+    # STEP 4: Review & Predict
+    elif st.session_state.step == 4:
+        st.markdown(f"""
+            <div class="step-header">
+                <h2>{icons['check']} Review Data</h2>
+                <p>Periksa kembali data Anda sebelum analisis</p>
+            </div>
+        """, unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if risk_factors['high_cholesterol']:
-                st.markdown(f"""
-                    <div class="info-card" style="border-left-color: #FF6B6B;">
-                        <h4 style="color: #FF6B6B;">{icons['caution']} Kolesterol Tinggi</h4>
-                        <p style="color: #2C3E50;">Level: {result['input_data']['Cholesterol']} mg/dl<br>
-                        <small style="color: #7F8C8D;">(Normal: <200 mg/dl)</small></p>
-                    </div>
-                """, unsafe_allow_html=True)
+            st.markdown("""
+                <div class="review-card">
+                    <h3>👤 Info Pribadi</h3>
+                </div>
+            """, unsafe_allow_html=True)
+            st.write(f"**Usia:** {st.session_state.form_data['age']} tahun")
+            st.write(f"**Jenis Kelamin:** {'Laki-laki' if st.session_state.form_data['sex'] == 'M' else 'Perempuan'}")
         
         with col2:
-            if risk_factors['high_bp']:
-                st.markdown(f"""
-                    <div class="info-card" style="border-left-color: #FF6B6B;">
-                        <h4 style="color: #FF6B6B;">{icons['caution']} Tekanan Darah Tinggi</h4>
-                        <p style="color: #2C3E50;">Level: {result['input_data']['RestingBP']} mm Hg<br>
-                        <small style="color: #7F8C8D;">(Normal: 90-120 mm Hg)</small></p>
-                    </div>
-                """, unsafe_allow_html=True)
+            st.markdown("""
+                <div class="review-card">
+                    <h3>🩺 Gejala</h3>
+                </div>
+            """, unsafe_allow_html=True)
+            st.write(f"**Nyeri Dada:** {st.session_state.form_data['chest_pain']}")
+            st.write(f"**Nyeri saat Olahraga:** {'Ya' if st.session_state.form_data['exercise_angina'] == 'Y' else 'Tidak'}")
+            st.write(f"**EKG:** {st.session_state.form_data['resting_ecg']}")
         
         with col3:
-            if risk_factors['high_blood_sugar']:
-                st.markdown(f"""
-                    <div class="info-card" style="border-left-color: #FF6B6B;">
-                        <h4 style="color: #FF6B6B;">{icons['caution']} Gula Darah Tinggi</h4>
-                        <p style="color: #2C3E50;">Gula darah puasa > 120 mg/dl<br>
-                        <small style="color: #7F8C8D;">(Normal: <100 mg/dl)</small></p>
-                    </div>
-                """, unsafe_allow_html=True)
-        
-        if risk_count == 0:
-            st.markdown(f"""
-                <div class="alert-success">
-                    <span style="color: #155724;">{icons['check']} <strong>Bagus!</strong> Tidak ada faktor risiko utama terdeteksi.</span>
+            st.markdown("""
+                <div class="review-card">
+                    <h3>❤️ Vital Signs</h3>
                 </div>
             """, unsafe_allow_html=True)
+            st.write(f"**Tekanan Darah:** {st.session_state.form_data['resting_bp']} mm Hg")
+            st.write(f"**Kolesterol:** {st.session_state.form_data['cholesterol']} mg/dl")
+            st.write(f"**Max HR:** {st.session_state.form_data['max_hr']} bpm")
         
-        st.markdown("---")
+        st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
         
-        st.markdown(f"### {icons['pill']} Rekomendasi Kesehatan")
-        
-        recommendations = get_health_recommendations(
-            result['prediction'], result['probability'], risk_factors
-        )
-        
-        for rec in recommendations:
-            st.markdown(f"""
-                <div class="info-card">
-                    <p style="margin: 0; font-size: 1.05rem; line-height: 1.8; color: #2C3E50;">{rec}</p>
-                </div>
-            """, unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("← Edit Data", use_container_width=True):
+                st.session_state.step = 1
+                st.rerun()
+        with col2:
+            if st.button("🔍 Analisis Sekarang", use_container_width=True, type="primary"):
+                with st.spinner("🤖 AI sedang menganalisis data Anda..."):
+                    try:
+                        input_data = {
+                            'Age': st.session_state.form_data['age'],
+                            'Sex': st.session_state.form_data['sex'],
+                            'ChestPainType': st.session_state.form_data['chest_pain'],
+                            'RestingBP': st.session_state.form_data['resting_bp'],
+                            'Cholesterol': st.session_state.form_data['cholesterol'],
+                            'FastingBS': st.session_state.form_data['fasting_bs'],
+                            'RestingECG': st.session_state.form_data['resting_ecg'],
+                            'MaxHR': st.session_state.form_data['max_hr'],
+                            'ExerciseAngina': st.session_state.form_data['exercise_angina'],
+                            'Oldpeak': st.session_state.form_data['oldpeak'],
+                            'ST_Slope': st.session_state.form_data['st_slope']
+                        }
+                        
+                        X_processed = preprocess_input(
+                            input_data, models_dict['scaler'],
+                            models_dict['label_encoders'], models_dict['feature_names']
+                        )
+                        
+                        model = models_dict['champion_model']
+                        prediction = model.predict(X_processed)[0]
+                        probability = model.predict_proba(X_processed)[0]
+                        
+                        st.session_state.prediction_made = True
+                        st.session_state.prediction_result = {
+                            'prediction': prediction,
+                            'probability': probability[1],
+                            'input_data': input_data,
+                            'risk_factors': calculate_risk_factors(input_data)
+                        }
+                        
+                        st.success("✅ Analisis selesai!")
+                        st.balloons()
+                        
+                    except Exception as e:
+                        st.error(f"❌ Terjadi kesalahan: {str(e)}")
 
 # ============================================================================
-# PAGE 3: INFORMASI MODEL
+# RESULTS SECTION
 # ============================================================================
-elif page == "📊 Informasi Model":
+if st.session_state.prediction_made and st.session_state.page == 'predict':
+    result = st.session_state.prediction_result
     
-    st.markdown(f"## {icons['chart']} Informasi Model Machine Learning")
+    st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("---")
     
-    st.markdown(f"### {icons['target']} Performa Model")
+    # Main Result Card
+    if result['prediction'] == 0:
+        st.markdown(f"""
+            <div class="result-banner result-positive">
+                <div class="result-icon-large">💚</div>
+                <h1>Risiko Rendah</h1>
+                <p>Berdasarkan data yang dianalisis, Anda memiliki risiko rendah terkena penyakit jantung</p>
+                <div class="probability-badge">
+                    Tingkat Risiko: {result['probability']*100:.1f}%
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+            <div class="result-banner result-negative">
+                <div class="result-icon-large">⚠️</div>
+                <h1>Risiko Tinggi</h1>
+                <p>Berdasarkan data yang dianalisis, Anda memiliki risiko tinggi terkena penyakit jantung</p>
+                <div class="probability-badge">
+                    Tingkat Risiko: {result['probability']*100:.1f}%
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    
+    # Charts
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📊 Tingkat Risiko")
+        gauge_fig = create_gauge_chart(result['probability'], "Probabilitas")
+        st.plotly_chart(gauge_fig, use_container_width=True)
+    
+    with col2:
+        st.markdown("### 🎯 Prediksi Model")
+        pred_fig = create_rf_prediction_chart(result['probability'])
+        st.plotly_chart(pred_fig, use_container_width=True)
+    
+    # Risk Factors
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("### ⚠️ Faktor Risiko Terdeteksi")
+    
+    risk_factors = result['risk_factors']
+    risk_cols = st.columns(3)
+    
+    risk_items = [
+        ('high_cholesterol', '🔴 Kolesterol Tinggi', f"{result['input_data']['Cholesterol']} mg/dl"),
+        ('high_bp', '🔴 Tekanan Darah Tinggi', f"{result['input_data']['RestingBP']} mm Hg"),
+        ('high_blood_sugar', '🔴 Gula Darah Tinggi', "Puasa > 120 mg/dl")
+    ]
+    
+    for idx, (key, title, value) in enumerate(risk_items):
+        with risk_cols[idx]:
+            if risk_factors.get(key, False):
+                st.markdown(f"""
+                    <div class="risk-badge risk-high">
+                        <div class="risk-title">{title}</div>
+                        <div class="risk-value">{value}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    
+    # Recommendations
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    st.markdown("### 💡 Rekomendasi untuk Anda")
+    
+    recommendations = get_health_recommendations(
+        result['prediction'], result['probability'], risk_factors
+    )
+    
+    for rec in recommendations:
+        st.markdown(f"""
+            <div class="recommendation-card">
+                {rec}
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Action Buttons
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 Lakukan Pemeriksaan Baru", use_container_width=True):
+            st.session_state.prediction_made = False
+            st.session_state.step = 1
+            st.session_state.form_data = {}
+            st.rerun()
+    with col2:
+        if st.button("🏠 Kembali ke Home", use_container_width=True):
+            navigate_to('home')
+
+# ============================================================================
+# INFO PAGE
+# ============================================================================
+elif st.session_state.page == 'info':
+    
+    st.markdown(f"""
+        <div class="section-title">
+            <h2>📊 Informasi Model & Teknologi</h2>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Model Performance
+    metadata = models_dict['metadata']
     
     col1, col2, col3, col4 = st.columns(4)
     
-    metadata = models_dict['metadata']
+    metrics = [
+        (metadata['champion_accuracy']*100, "Akurasi", "🎯"),
+        (metadata['champion_precision']*100, "Presisi", "📊"),
+        (metadata['champion_recall']*100, "Recall", "🔍"),
+        (metadata['champion_roc_auc']*100, "ROC-AUC", "📈")
+    ]
     
-    with col1:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{metadata['champion_accuracy']*100:.1f}%</div>
-                <div class="metric-label">Akurasi</div>
-            </div>
-        """, unsafe_allow_html=True)
+    for col, (value, label, icon) in zip([col1, col2, col3, col4], metrics):
+        with col:
+            st.markdown(f"""
+                <div class="metric-box">
+                    <div class="metric-icon">{icon}</div>
+                    <div class="metric-number">{value:.1f}%</div>
+                    <div class="metric-name">{label}</div>
+                </div>
+            """, unsafe_allow_html=True)
     
-    with col2:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{metadata['champion_precision']*100:.1f}%</div>
-                <div class="metric-label">Presisi</div>
-            </div>
-        """, unsafe_allow_html=True)
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
     
-    with col3:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{metadata['champion_recall']*100:.1f}%</div>
-                <div class="metric-label">Recall</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{metadata['champion_roc_auc']*100:.1f}%</div>
-                <div class="metric-label">ROC-AUC</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
+    # Technology Stack
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown(f"""
-            <div class="info-card">
-                <h3 style="color: #00D9A3;">{icons['info']} Model Champion</h3>
-                <p style="color: #2C3E50;"><strong>Nama Model:</strong> {metadata['champion_model_name']}</p>
-                <p style="color: #2C3E50;"><strong>Tanggal Training:</strong> {metadata['training_date']}</p>
-                <p style="color: #2C3E50;"><strong>Total Data:</strong> 918 samples</p>
-                <p style="color: #2C3E50;"><strong>Total Fitur:</strong> {len(metadata['feature_names'])} fitur</p>
-                <p style="color: #2C3E50;"><strong>Algoritma:</strong> Random Forest</p>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown(f"""
-            <div class="info-card">
-                <h3 style="color: #00D9A3;">{icons['star']} Keunggulan Model</h3>
-                <ul style="line-height: 2; color: #2C3E50;">
-                    <li>✅ Akurasi tinggi (88.6%)</li>
-                    <li>✅ Feature engineering advanced</li>
-                    <li>✅ Cross-validation 5-fold</li>
-                    <li>✅ Hyperparameter tuning optimal</li>
-                    <li>✅ Robust & reliable predictions</li>
+        st.markdown("""
+            <div class="info-box">
+                <h3>🤖 Machine Learning</h3>
+                <ul>
+                    <li>Random Forest Classifier</li>
+                    <li>918 Training Samples</li>
+                    <li>11 Input Features</li>
+                    <li>5-Fold Cross Validation</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("---")
+    with col2:
+        st.markdown("""
+            <div class="info-box">
+                <h3>💻 Technology Stack</h3>
+                <ul>
+                    <li>Python & Scikit-learn</li>
+                    <li>Streamlit Framework</li>
+                    <li>Plotly Visualization</li>
+                    <li>Modern Responsive UI</li>
+                </ul>
+            </div>
+        """, unsafe_allow_html=True)
     
-    st.markdown(f"### {icons['chart']} Fitur Paling Berpengaruh")
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
     
+    # Feature Importance
+    st.markdown("### 📊 Fitur Paling Berpengaruh")
     rf_importance_fig = create_feature_importance_chart(
-        models_dict['rf_model'], models_dict['feature_names'], top_n=15
+        models_dict['rf_model'], models_dict['feature_names'], top_n=10
     )
     st.plotly_chart(rf_importance_fig, use_container_width=True)
     
-    st.markdown("---")
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
     
-    with st.expander(f"{icons['info']} Detail Teknis Model"):
-        st.markdown("#### Random Forest Hyperparameters")
-        st.json(metadata['rf_best_params'])
-
-# ============================================================================
-# PAGE 4: TENTANG
-# ============================================================================
-elif page == "ℹ️ Tentang Aplikasi":
-    
-    st.markdown(f"## {icons['info']} Tentang Aplikasi")
-    
-    st.markdown(f"""
-        <div class="info-card">
-            <h3 style="color: #00D9A3;">{icons['heart']} Sistem Prediksi Penyakit Jantung</h3>
-            <p style="font-size: 1.1rem; line-height: 1.8; color: #2C3E50;">
-                Aplikasi web ini dikembangkan untuk membantu deteksi dini risiko penyakit jantung 
-                menggunakan <strong>Machine Learning Random Forest</strong>, yang telah dilatih 
-                menggunakan dataset Heart Failure Prediction dari UCI Machine Learning Repository.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    st.markdown(f"### {icons['target']} Teknologi")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown(f"""
-            <div class="info-card">
-                <h4 style="color: #00D9A3;">Machine Learning</h4>
-                <ul style="line-height: 2; color: #2C3E50;">
-                    <li>🌲 Random Forest Classifier</li>
-                    <li>📊 Scikit-learn</li>
-                    <li>🔢 NumPy & Pandas</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown(f"""
-            <div class="info-card">
-                <h4 style="color: #00D9A3;">Web Development</h4>
-                <ul style="line-height: 2; color: #2C3E50;">
-                    <li>🎨 Streamlit</li>
-                    <li>📈 Plotly</li>
-                    <li>💅 Custom CSS</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    st.markdown(f"### {icons['warning']} Disclaimer")
-    
-    st.markdown(f"""
-        <div class="alert-warning">
-            <h4 style="margin-top: 0; color: #856404;">⚠️ Pernyataan Penting</h4>
-            <p style="line-height: 1.8; color: #856404;">
-                Aplikasi ini <strong>BUKAN</strong> pengganti diagnosis medis profesional. 
-                Hasil prediksi bersifat <strong>indikatif</strong> dan <strong>edukatif</strong>. 
-                Selalu konsultasikan dengan dokter untuk diagnosis dan penanganan yang tepat.
-            </p>
+    # About & Disclaimer
+    st.markdown("""
+        <div class="disclaimer-box">
+            <h3>⚠️ Disclaimer Penting</h3>
+            <p>Aplikasi ini <strong>BUKAN</strong> alat diagnosis medis. Hasil prediksi bersifat 
+            indikatif dan edukatif. Selalu konsultasikan dengan dokter untuk diagnosis dan 
+            penanganan yang tepat. Jangan gunakan hasil ini sebagai satu-satunya dasar 
+            untuk keputusan medis.</p>
         </div>
     """, unsafe_allow_html=True)
 
-# ============================================================================
-# FOOTER
-# ============================================================================
+# Footer
+st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
 st.markdown("---")
-st.markdown(f"""
+st.markdown("""
     <div class="footer">
-        <p style="color: #7F8C8D;">{icons['heart']} Heart Disease Prediction System | © 2024</p>
-        <p style="font-size: 0.85rem; color: #95A5A6;">
-            Powered by Machine Learning • Random Forest • Streamlit
-        </p>
+        <p>❤️ HeartCheck AI • Powered by Machine Learning</p>
+        <p style="font-size: 0.9rem; opacity: 0.7;">© 2024 • Made with Streamlit</p>
     </div>
 """, unsafe_allow_html=True)
